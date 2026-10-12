@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Evaluación Académica - Examen de Matemáticas</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- html2canvas with fallback capabilities -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- MathJax Configuration -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: { fontCache: 'global' },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                }
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+    <style>
+        /* Deshabilitar selección e interacciones accidentales */
+        body, html {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            touch-action: manipulation;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+            height: 100%;
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        /* Fullscreen Overlay Style */
+        .fullscreen-prompt-overlay {
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col justify-between bg-slate-900 text-slate-100 select-none">
+
+    <!-- TOP BAR HEADER -->
+    <header class="sticky top-0 z-40 bg-slate-800/95 border-b border-slate-700 shadow-lg px-4 py-3">
+        <div class="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2.5 rounded-xl font-bold flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-calculator text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold leading-tight text-white">Evaluación Académica de Matemáticas</h1>
+                    <p class="text-xs text-slate-400 flex items-center gap-2">
+                        <span>Prueba Oficial - 19 Preguntas</span>
+                        <span id="fs-status-tag" class="text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded">Ventana</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Quiz Active Controls -->
+            <div id="quiz-header-info" class="hidden flex items-center space-x-3 sm:space-x-4">
+                <!-- Infractions Counter -->
+                <div id="infractions-container" class="bg-amber-950/80 border border-amber-600/50 px-2.5 py-1.5 rounded-lg flex items-center space-x-2 text-xs font-semibold text-amber-400">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
+                    <span class="hidden sm:inline">Faltas:</span>
+                    <span id="infraction-dots" class="flex space-x-1">
+                        <span class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+                    </span>
+                </div>
+
+                <!-- Timer -->
+                <div class="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center space-x-2">
+                    <i class="fa-solid fa-clock text-indigo-400 animate-pulse text-sm"></i>
+                    <span id="timer-display" class="font-mono text-base sm:text-lg font-bold text-emerald-400">50:00</span>
+                </div>
+
+                <!-- Quick Submit Button -->
+                <button onclick="openFinishModal()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs shadow-md transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-check-double"></i>
+                    <span class="hidden sm:inline">Entregar Examen</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- WARNING ALERT BANNER -->
+    <div id="warning-banner" class="hidden fixed top-16 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-5 py-3 rounded-xl shadow-2xl border-2 border-red-400 flex items-center space-x-3 animate-bounce max-w-sm sm:max-w-md w-11/12">
+        <i class="fa-solid fa-triangle-exclamation text-xl flex-shrink-0"></i>
+        <div>
+            <span class="font-bold text-xs uppercase tracking-wider block">¡Advertencia de Seguridad!</span>
+            <p id="warning-text" class="text-xs">Ha cambiado de pestaña o salido de la pantalla completa.</p>
+        </div>
+    </div>
+
+    <!-- FULLSCREEN RE-ENTRY OVERLAY -->
+    <div id="fullscreen-overlay" class="hidden fixed inset-0 z-50 bg-slate-950/90 fullscreen-prompt-overlay flex flex-col items-center justify-center p-6 text-center">
+        <div class="p-4 bg-indigo-600/20 text-indigo-400 rounded-full mb-4 animate-bounce">
+            <i class="fa-solid fa-expand text-4xl"></i>
+        </div>
+        <h2 class="text-2xl font-extrabold text-white mb-2">Pantalla Completa Requerida</h2>
+        <p class="text-slate-300 text-sm max-w-md mb-6">Para continuar con la evaluación oficial y evitar sanciones, debe reanudar la vista en pantalla completa.</p>
+        <button onclick="requestUniversalFullscreen()" class="px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl text-white shadow-xl transition flex items-center space-x-2 text-sm">
+            <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
+            <span>Volver a Pantalla Completa</span>
+        </button>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-grow max-w-5xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
+
+        <!-- SCREEN 1: REGISTRATION -->
+        <section id="registration-screen" class="bg-slate-800 border border-slate-700 rounded-2xl p-6 sm:p-10 shadow-2xl max-w-xl mx-auto w-full">
+            <div class="text-center mb-8">
+                <div class="inline-flex p-3 bg-indigo-600/20 rounded-2xl text-indigo-400 mb-3">
+                    <i class="fa-solid fa-user-graduate text-3xl"></i>
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Registro de Estudiante</h2>
+                <p class="text-slate-400 text-xs sm:text-sm mt-1">Ingrese sus datos oficiales para comenzar la prueba de 19 preguntas.</p>
+            </div>
+
+            <form id="registration-form" onsubmit="startExam(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Nombre Completo</label>
+                    <input type="text" id="reg-name" required placeholder="Ej. Juan Carlos Pérez López" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Grado y Sección</label>
+                    <input type="text" id="reg-code" required placeholder="Ej. 7° A" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-300 mb-1">Correo Electrónico</label>
+                    <input type="email" id="reg-email" required placeholder="estudiante@institucion.edu" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm transition">
+                </div>
+
+                <div class="bg-indigo-950/40 border border-indigo-700/50 rounded-xl p-3 text-xs text-indigo-300 flex items-start space-x-2.5">
+                    <i class="fa-solid fa-shield-halved text-indigo-400 text-base mt-0.5"></i>
+                    <span><strong>Modo Evaluador Seguro:</strong> Al iniciar, el examen solicitará acceso a pantalla completa y bloqueará la navegación para asegurar la validez de la prueba.</span>
+                </div>
+
+                <div id="reg-error-msg" class="hidden text-red-400 text-xs font-semibold text-center bg-red-950/50 p-2.5 rounded-xl border border-red-800"></div>
+
+                <button type="submit" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl transition shadow-lg hover:shadow-indigo-500/25 text-white flex items-center justify-center space-x-2 text-sm sm:text-base">
+                    <i class="fa-solid fa-expand"></i>
+                    <span>Iniciar Examen en Pantalla Completa</span>
+                </button>
+            </form>
+        </section>
+
+        <!-- SCREEN 2: EXAM INTERFACE -->
+        <section id="exam-screen" class="hidden flex flex-col space-y-5">
+            <!-- Progress Bar Card -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-md">
+                <div class="flex justify-between items-center text-xs text-slate-400 mb-2">
+                    <span>Pregunta <strong id="current-q-num" class="text-indigo-400 text-sm">1</strong> de 19</span>
+                    <span id="answered-count-badge" class="bg-indigo-950 border border-indigo-800 text-indigo-300 px-2.5 py-1 rounded-lg font-bold">0/19 Respondidas</span>
+                </div>
+                <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden p-0.5 border border-slate-700/50">
+                    <div id="exam-progress-bar" class="bg-gradient-to-r from-indigo-500 to-emerald-400 h-full w-0 rounded-full transition-all duration-300"></div>
+                </div>
+            </div>
+
+            <!-- Question Card -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 sm:p-8 shadow-xl">
+                <div id="question-header" class="mb-5 border-b border-slate-700/80 pb-4">
+                    <span id="q-category" class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-950/80 border border-indigo-800 px-3 py-1 rounded-full">Pregunta</span>
+                    <h3 id="q-text" class="text-base sm:text-xl font-medium mt-3 text-slate-100 leading-relaxed"></h3>
+                    <div id="q-graphics-container" class="mt-4 flex justify-center bg-slate-900/80 p-4 rounded-xl border border-slate-700/60 overflow-x-auto min-h-[120px] items-center">
+                        <!-- Graphics Injected Dynamically -->
+                    </div>
+                </div>
+
+                <!-- Options Grid -->
+                <div id="options-container" class="grid grid-cols-1 gap-3">
+                    <!-- Dynamic Options -->
+                </div>
+            </div>
+
+            <!-- Navigation Controls -->
+            <div class="flex justify-between items-center pt-2">
+                <button id="btn-prev" onclick="navigateQuestion(-1)" class="px-4 sm:px-5 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-700 rounded-xl text-xs sm:text-sm font-semibold transition flex items-center space-x-2">
+                    <i class="fa-solid fa-chevron-left text-xs"></i>
+                    <span>Anterior</span>
+                </button>
+
+                <!-- Grid Map Modal Trigger -->
+                <button onclick="toggleGridModal(true)" class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-semibold transition text-slate-300 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-grip text-indigo-400"></i>
+                    <span class="hidden sm:inline">Mapa de Preguntas</span>
+                </button>
+
+                <button id="btn-next" onclick="navigateQuestion(1)" class="px-4 sm:px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs sm:text-sm font-bold transition flex items-center space-x-2 text-white">
+                    <span>Siguiente</span>
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </button>
+
+                <button id="btn-submit" onclick="openFinishModal()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl text-xs sm:text-sm transition shadow-lg hover:shadow-emerald-500/20 text-white flex items-center space-x-1.5">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>Finalizar Examen</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- SCREEN 3: RESULTS & EVIDENCE CAPTURE -->
+        <section id="results-screen" class="hidden flex flex-col items-center justify-center my-2">
+            <div class="mb-4 text-center">
+                <div class="inline-flex p-3 bg-emerald-500/20 rounded-full text-emerald-400 mb-2">
+                    <i class="fa-solid fa-circle-check text-4xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white">Evaluación Finalizada</h2>
+                <p class="text-xs text-slate-400">Revise sus resultados y descargue la imagen de evidencia oficial.</p>
+            </div>
+
+            <!-- EVIDENCIA DE RESULTADOS (CAPTURABLE / RENDERIZABLE) -->
+            <div id="evidence-card" class="bg-slate-800 border-2 border-indigo-500/50 rounded-2xl p-6 sm:p-8 max-w-xl w-full text-slate-100 shadow-2xl relative overflow-hidden">
+                <div class="border-b border-slate-700 pb-4 mb-4 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-base sm:text-lg font-black text-indigo-400 uppercase tracking-wider">Comprobante de Evidencia</h3>
+                        <p class="text-xs text-slate-400">Prueba Académica de Matemáticas</p>
+                    </div>
+                    <span id="evidence-status-badge" class="px-3 py-1 bg-emerald-950 text-emerald-300 border border-emerald-700 rounded-full text-xs font-bold">FINALIZADO</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs mb-5">
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700">
+                        <span class="text-slate-400 block text-[10px] uppercase font-bold">Estudiante</span>
+                        <span id="res-student-name" class="text-sm font-semibold text-white">---</span>
+                    </div>
+
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700">
+                        <span class="text-slate-400 block text-[10px] uppercase font-bold">Grado y Sección</span>
+                        <span id="res-student-code" class="text-sm font-semibold text-white">---</span>
+                    </div>
+
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700">
+                        <span class="text-slate-400 block text-[10px] uppercase font-bold">Correo Electrónico</span>
+                        <span id="res-student-email" class="text-sm font-semibold text-white truncate block">---</span>
+                    </div>
+
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-700">
+                        <span class="text-slate-400 block text-[10px] uppercase font-bold">Fecha / Hora</span>
+                        <span id="res-timestamp" class="text-sm font-semibold text-white">---</span>
+                    </div>
+                </div>
+
+                <!-- Score Highlight -->
+                <div class="bg-gradient-to-r from-indigo-950 to-slate-900 border border-indigo-700/60 rounded-xl p-4 flex justify-between items-center mb-5">
+                    <div>
+                        <span class="text-xs text-indigo-300 font-semibold block">Puntaje Obtenido</span>
+                        <span id="res-score-text" class="text-3xl font-extrabold text-white">0.0 / 10.0</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-slate-400 block">Aciertos Exactos</span>
+                        <span id="res-correct-count" class="text-xl font-bold text-emerald-400">0 / 19</span>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-700/80 pt-3 flex justify-between items-center text-[11px] text-slate-400 font-mono">
+                    <span>Código de verificación: <strong id="res-verification-code" class="text-slate-200">HEX-000000</strong></span>
+                    <span>Infracciones: <strong id="res-infractions-count" class="text-slate-200">0</strong></span>
+                </div>
+            </div>
+
+            <!-- Download Button Trigger -->
+            <div class="mt-6 flex flex-col sm:flex-row gap-3 w-full max-w-xl">
+                <button onclick="downloadEvidenceImage()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 font-bold rounded-xl transition shadow-xl flex items-center justify-center space-x-2 text-white text-sm">
+                    <i class="fa-solid fa-file-arrow-down text-lg"></i>
+                    <span>Descargar Evidencia en Imagen (PNG)</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- SCREEN 4: DISQUALIFIED / ANULADO -->
+        <section id="annulled-screen" class="hidden bg-red-950/90 border-2 border-red-600 rounded-2xl p-8 max-w-xl mx-auto text-center shadow-2xl">
+            <div class="inline-flex p-4 bg-red-800/40 rounded-full text-red-400 mb-4 animate-pulse">
+                <i class="fa-solid fa-ban text-5xl"></i>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-black text-red-400 uppercase tracking-wide mb-2">EXAMEN ANULADO</h2>
+            <p class="text-red-200 text-xs sm:text-sm mb-6 font-semibold">Ha superado el límite permitido de 3 infracciones por cambio de ventana, salir de pantalla completa o realizar acciones no autorizadas.</p>
+            
+            <div class="bg-slate-900/90 p-4 rounded-xl border border-red-900/80 text-left text-xs space-y-2 text-slate-300 mb-6">
+                <p><strong>Estudiante:</strong> <span id="annulled-student-name"></span></p>
+                <p><strong>Correo:</strong> <span id="annulled-student-email"></span></p>
+                <p><strong>Estado:</strong> <span class="text-red-400 font-bold">REPROBADO POR INFRACCIÓN</span></p>
+            </div>
+
+            <p class="text-xs text-slate-400">Esta incidencia ha quedado registrada formalmente.</p>
+        </section>
+
+    </main>
+
+    <!-- QUESTION GRID MODAL -->
+    <div id="grid-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-slate-200 text-sm sm:text-base">Mapa de Preguntas</h3>
+                <button onclick="toggleGridModal(false)" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div id="grid-modal-list" class="grid grid-cols-5 gap-2.5 mb-5">
+                <!-- Dynamically populated buttons 1 to 19 -->
+            </div>
+            <button onclick="toggleGridModal(false)" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold text-white">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- SUBMIT CONFIRMATION MODAL -->
+    <div id="finish-confirm-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl text-center">
+            <div class="inline-flex p-3 bg-emerald-500/20 rounded-full text-emerald-400 mb-3">
+                <i class="fa-solid fa-paper-plane text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-100 mb-2">¿Deseas finalizar la evaluación?</h3>
+            <p id="finish-modal-msg" class="text-xs sm:text-sm text-slate-300 mb-6">Ha respondido 0 de 19 preguntas.</p>
+            <div class="flex justify-center space-x-3">
+                <button onclick="closeFinishModal()" class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-semibold text-slate-200 transition">
+                    Continuar Examen
+                </button>
+                <button onclick="executeFinishExam()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-xs font-bold text-white transition shadow-lg">
+                    Sí, Entregar Examen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Canvas for Fallback Native Image Generation -->
+    <canvas id="hidden-evidence-canvas" class="hidden"></canvas>
+
+    <script>
+        /* EXAM DATASET: 19 QUESTIONS */
+        const ALL_QUESTIONS = [
+            {
+                        "id": 1,
+                        "category": "Verdadero o falso",
+                        "question": "En dos magnitudes inversamente proporcionales, si una cantidad se duplica, la otra correspondiente se reduce a la mitad.",
+                        "options": [
+                                    "Verdadero",
+                                    "Falso"
+                        ],
+                        "correct": 0,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 2,
+                        "category": "Verdadero o falso",
+                        "question": "La gráfica de una función de proporcionalidad directa y = ax (con a ≠ 0) es una recta que siempre pasa por el origen (0, 0).",
+                        "options": [
+                                    "Verdadero",
+                                    "Falso"
+                        ],
+                        "correct": 0,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 3,
+                        "category": "Verdadero o falso",
+                        "question": "En un gráfico circular, la suma de los porcentajes de todos los sectores siempre debe ser igual a 360%.",
+                        "options": [
+                                    "Verdadero",
+                                    "Falso"
+                        ],
+                        "correct": 1,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 4,
+                        "category": "Verdadero o falso",
+                        "question": "La traslación de una figura geométrica cambia sus dimensiones y la medida de sus ángulos internos.",
+                        "options": [
+                                    "Verdadero",
+                                    "Falso"
+                        ],
+                        "correct": 1,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 5,
+                        "category": "Verdadero o falso",
+                        "question": "La mediatriz de un segmento es la recta perpendicular al segmento que pasa exactamente por su punto medio.",
+                        "options": [
+                                    "Verdadero",
+                                    "Falso"
+                        ],
+                        "correct": 0,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 6,
+                        "category": "Verdadero o falso",
+                        "question": "Un cilindro es un poliedro cuyas bases son dos círculos paralelos e iguales.",
+                        "options": [
+                                    "Verdadero",
+                                    "Falso"
+                        ],
+                        "correct": 1,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 7,
+                        "category": "Proporcionalidad inversa",
+                        "question": "Un grupo de 6 obreros tarda 12 días en construir una pared. Si trabajan 9 obreros al mismo ritmo, ¿cuántos días tardarán?",
+                        "options": [
+                                    "A) 18 días",
+                                    "B) 8 días",
+                                    "C) 10 días",
+                                    "D) 6 días"
+                        ],
+                        "correct": 1,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 8,
+                        "category": "Función de proporcionalidad inversa",
+                        "question": "Dada la función y = 24/x, ¿cuál es el valor de y cuando x = −4?",
+                        "options": [
+                                    "A) 6",
+                                    "B) −6",
+                                    "C) −20",
+                                    "D) 96"
+                        ],
+                        "correct": 1,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 9,
+                        "category": "Gráficas de funciones",
+                        "question": "¿Cuál afirmación describe la gráfica de la función de proporcionalidad inversa y = a/x?",
+                        "options": [
+                                    "A) Es una recta inclinada que pasa por (1, 1).",
+                                    "B) Es una parábola con vértice en el origen.",
+                                    "C) Es una hipérbola de dos ramas que no toca los ejes.",
+                                    "D) Es una circunferencia centrada en el origen."
+                        ],
+                        "correct": 2,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 10,
+                        "category": "Porcentajes",
+                        "question": "En un grupo de 50 estudiantes, el fútbol representa el 40% de las preferencias. ¿A cuántos estudiantes equivale?",
+                        "options": [
+                                    "A) 15 estudiantes",
+                                    "B) 20 estudiantes",
+                                    "C) 25 estudiantes",
+                                    "D) 40 estudiantes"
+                        ],
+                        "correct": 1,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 11,
+                        "category": "Gráfico circular",
+                        "question": "Si una categoría representa el 25% del total, ¿qué ángulo central le corresponde?",
+                        "options": [
+                                    "A) 25°",
+                                    "B) 45°",
+                                    "C) 90°",
+                                    "D) 180°"
+                        ],
+                        "correct": 2,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 12,
+                        "category": "Transformaciones geométricas",
+                        "question": "¿Cómo se denomina el movimiento rígido que gira una figura alrededor de un punto fijo un ángulo determinado?",
+                        "options": [
+                                    "A) Traslación",
+                                    "B) Rotación",
+                                    "C) Simetría axial",
+                                    "D) Reflexión"
+                        ],
+                        "correct": 1,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 13,
+                        "category": "Cuerpos geométricos",
+                        "question": "¿Qué cuerpo tiene dos bases poligonales iguales y paralelas y caras laterales que son paralelogramos?",
+                        "options": [
+                                    "A) Pirámide",
+                                    "B) Cono",
+                                    "C) Prisma",
+                                    "D) Cilindro"
+                        ],
+                        "correct": 2,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 14,
+                        "category": "Construcciones geométricas",
+                        "question": "¿Qué recta divide un ángulo en dos ángulos congruentes, es decir, de igual medida?",
+                        "options": [
+                                    "A) Mediatriz",
+                                    "B) Tangente",
+                                    "C) Bisectriz",
+                                    "D) Secante"
+                        ],
+                        "correct": 2,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 15,
+                        "category": "Área del cilindro",
+                        "question": "Un depósito cilíndrico tiene radio de 3 m y altura de 8 m. ¿Cuál es su área lateral?",
+                        "options": [
+                                    "A) 24π m²",
+                                    "B) 48π m²",
+                                    "C) 66π m²",
+                                    "D) 96π m²"
+                        ],
+                        "correct": 1,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 16,
+                        "category": "Área del cilindro",
+                        "question": "Para un cilindro de radio 3 m y altura 8 m, ¿cuál es el área total? Use A = 2πrh + 2πr².",
+                        "options": [
+                                    "A) 48π m²",
+                                    "B) 54π m²",
+                                    "C) 66π m²",
+                                    "D) 72π m²"
+                        ],
+                        "correct": 2,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 17,
+                        "category": "Área del prisma rectangular",
+                        "question": "Una caja tiene largo 5 cm, ancho 4 cm y altura 10 cm. ¿Cuál es el área total de su superficie?",
+                        "options": [
+                                    "A) 100 cm²",
+                                    "B) 180 cm²",
+                                    "C) 200 cm²",
+                                    "D) 220 cm²"
+                        ],
+                        "correct": 3,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 18,
+                        "category": "Regla de tres y proporcionalidad",
+                        "question": "Cuatro grifos iguales llenan una piscina en 15 horas. Si se utilizan 6 grifos con el mismo caudal, ¿cuánto tardarán?",
+                        "options": [
+                                    "A) 5 horas",
+                                    "B) 10 horas",
+                                    "C) 12 horas",
+                                    "D) 22.5 horas"
+                        ],
+                        "correct": 1,
+                        "hasGraphic": false
+            },
+            {
+                        "id": 19,
+                        "category": "Construcción geométrica",
+                        "question": "Para construir un triángulo con lados de 6 cm, 5 cm y 4 cm y luego trazar la mediatriz del lado mayor, ¿qué procedimiento es correcto?",
+                        "options": [
+                                    "A) Dibujar un segmento de 6 cm; con centros en sus extremos trazar arcos de radios 5 cm y 4 cm; unir la intersección con los extremos y construir la perpendicular por el punto medio del lado de 6 cm.",
+                                    "B) Dibujar tres líneas paralelas y unir sus extremos al azar.",
+                                    "C) Dibujar un círculo de radio 6 cm y marcar cualquier punto como vértice.",
+                                    "D) Medir solamente los ángulos sin utilizar compás."
+                        ],
+                        "correct": 0,
+                        "hasGraphic": false
+            }
+];
+
+        /* STATE VARIABLES */
+        let activeQuestions = [];
+        let currentQIndex = 0;
+        let userAnswers = {};
+        let studentInfo = {};
+        let timerInterval = null;
+        let timeRemaining = 3000; // 50 min
+        let infractionsCount = 0;
+        let isExamFinished = false;
+        let generatedVerificationCode = "";
+
+        function renderGraphic(type) {
+            switch(type) {
+                case "P1":
+                    return `<svg class="w-full max-w-md h-24" viewBox="0 0 400 80">
+                        <rect x="10" y="10" width="60" height="60" rx="8" fill="#1e293b" stroke="#6366f1" stroke-width="2"/>
+                        <circle cx="40" cy="40" r="18" fill="none" stroke="#38bdf8" stroke-width="2"/>
+                        <rect x="90" y="10" width="60" height="60" rx="8" fill="#1e293b" stroke="#6366f1" stroke-width="2"/>
+                        <rect x="105" y="25" width="30" height="30" fill="none" stroke="#38bdf8" stroke-width="2"/>
+                        <rect x="170" y="10" width="60" height="60" rx="8" fill="#1e293b" stroke="#6366f1" stroke-width="2"/>
+                        <polygon points="200,20 220,55 180,55" fill="none" stroke="#38bdf8" stroke-width="2"/>
+                        <rect x="250" y="10" width="60" height="60" rx="8" fill="#312e81" stroke="#a855f7" stroke-width="2" stroke-dasharray="4"/>
+                        <text x="280" y="48" fill="#a855f7" font-size="24" font-weight="bold" text-anchor="middle">?</text>
+                    </svg>`;
+                case "P4":
+                    return `<svg class="w-full max-w-md h-28" viewBox="0 0 300 110">
+                        <line x1="20" y1="80" x2="280" y2="80" stroke="#64748b" stroke-width="2"/>
+                        <path d="M 30,10 Q 150,130 270,10" fill="none" stroke="#818cf8" stroke-width="3"/>
+                        <circle cx="80" cy="80" r="5" fill="#f43f5e"/>
+                        <text x="80" y="100" fill="#f43f5e" font-size="11" font-weight="bold" text-anchor="middle">x = 2</text>
+                        <circle cx="220" cy="80" r="5" fill="#f43f5e"/>
+                        <text x="220" y="100" fill="#f43f5e" font-size="11" font-weight="bold" text-anchor="middle">x = 5</text>
+                        <line x1="20" y1="80" x2="80" y2="80" stroke="#10b981" stroke-width="5"/>
+                        <line x1="220" y1="80" x2="280" y2="80" stroke="#10b981" stroke-width="5"/>
+                    </svg>`;
+                case "P5":
+                    return `<svg class="w-full max-w-md h-32" viewBox="0 0 300 120">
+                        <line x1="20" y1="60" x2="280" y2="60" stroke="#475569" stroke-width="1"/>
+                        <line x1="150" y1="10" x2="150" y2="110" stroke="#475569" stroke-width="1"/>
+                        <ellipse cx="110" cy="60" rx="60" ry="32" fill="none" stroke="#38bdf8" stroke-width="2.5"/>
+                        <circle cx="110" cy="60" r="3" fill="#a855f7"/>
+                        <circle cx="60" cy="60" r="4" fill="#f43f5e"/> <text x="60" y="78" fill="#f43f5e" font-size="10" font-weight="bold" text-anchor="middle">F2(-7,1)</text>
+                        <circle cx="160" cy="60" r="4" fill="#f43f5e"/> <text x="160" y="78" fill="#f43f5e" font-size="10" font-weight="bold" text-anchor="middle">F1(-1,1)</text>
+                    </svg>`;
+                case "P8":
+                    return `<svg class="w-full max-w-md h-28" viewBox="0 0 260 110">
+                        <line x1="20" y1="90" x2="240" y2="90" stroke="#475569" stroke-width="1.5"/>
+                        <line x1="130" y1="10" x2="130" y2="105" stroke="#475569" stroke-width="1.5"/>
+                        <path d="M 50,100 Q 100,-10 210,100" fill="none" stroke="#f43f5e" stroke-width="2.5"/>
+                        <circle cx="100" cy="20" r="4" fill="#38bdf8"/>
+                        <text x="100" y="12" fill="#38bdf8" font-size="10" font-weight="bold" text-anchor="middle">(-1, 4)</text>
+                    </svg>`;
+                case "P10":
+                    return `<svg class="w-full max-w-md h-28" viewBox="0 0 260 100">
+                        <polygon points="60,15 60,85 180,85" fill="none" stroke="#38bdf8" stroke-width="2.5"/>
+                        <text x="45" y="50" fill="#f43f5e" font-size="11" font-weight="bold">h = ?</text>
+                        <text x="120" y="98" fill="#38bdf8" font-size="11" font-weight="bold">Base = 3 m</text>
+                        <text x="145" y="70" fill="#a855f7" font-size="10" font-weight="bold">55°</text>
+                    </svg>`;
+                case "P12":
+                    return `<svg class="w-full max-w-md h-28" viewBox="0 0 280 100">
+                        <polyline points="30,80 140,20 250,80" fill="none" stroke="#818cf8" stroke-width="2.5" stroke-dasharray="3,3"/>
+                        <circle cx="30" cy="80" r="4" fill="#38bdf8"/><text x="30" y="95" fill="#38bdf8" font-size="9" text-anchor="middle">La Paz</text>
+                        <circle cx="140" cy="20" r="4" fill="#f43f5e"/><text x="140" y="12" fill="#f43f5e" font-size="9" text-anchor="middle">Punto B</text>
+                        <circle cx="250" cy="80" r="4" fill="#10b981"/><text x="250" y="95" fill="#10b981" font-size="9" text-anchor="middle">El Majahual</text>
+                    </svg>`;
+                case "P14":
+                    return `<svg class="w-full max-w-md h-28" viewBox="0 0 260 100">
+                        <line x1="20" y1="50" x2="240" y2="50" stroke="#475569" stroke-width="1.5"/>
+                        <line x1="130" y1="10" x2="130" y2="90" stroke="#475569" stroke-width="1.5"/>
+                        <path d="M 30,10 Q 90,50 30,90" fill="none" stroke="#a855f7" stroke-width="2.5"/>
+                        <path d="M 230,10 Q 170,50 230,90" fill="none" stroke="#a855f7" stroke-width="2.5"/>
+                    </svg>`;
+                case "P15":
+                    return `<svg class="w-full max-w-md h-28" viewBox="0 0 260 100">
+                        <polygon points="40,80 220,80 160,20" fill="rgba(99,102,241,0.15)" stroke="#6366f1" stroke-width="2"/>
+                        <text x="30" y="90" fill="#e2e8f0" font-size="10">A</text>
+                        <text x="225" y="90" fill="#e2e8f0" font-size="10">C</text>
+                        <text x="160" y="12" fill="#e2e8f0" font-size="10">B</text>
+                    </svg>`;
+                case "P16":
+                    return `<svg class="w-full max-w-md h-20" viewBox="0 0 320 60">
+                        <text x="30" y="35" fill="#cbd5e1" font-size="11">Fig 1 (5)</text>
+                        <text x="110" y="35" fill="#cbd5e1" font-size="11">Fig 2 (8)</text>
+                        <text x="190" y="35" fill="#cbd5e1" font-size="11">Fig 3 (11)</text>
+                        <text x="270" y="35" fill="#818cf8" font-size="11" font-weight="bold">... Fig 5 (?)</text>
+                    </svg>`;
+                case "P18":
+                    return `<svg class="w-full max-w-md h-28" viewBox="0 0 280 100">
+                        <ellipse cx="140" cy="50" rx="50" ry="28" fill="none" stroke="#10b981" stroke-width="2.5"/>
+                        <circle cx="140" cy="50" r="3" fill="#f43f5e"/>
+                        <text x="140" y="65" fill="#f43f5e" font-size="9" text-anchor="middle">(1, -2)</text>
+                    </svg>`;
+                case "P22":
+                    return `<svg class="w-full max-w-md h-28" viewBox="0 0 260 100">
+                        <line x1="20" y1="80" x2="240" y2="80" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4"/>
+                        <path d="M 20,78 Q 120,75 220,10" fill="none" stroke="#38bdf8" stroke-width="2.5"/>
+                    </svg>`;
+                case "P23":
+                    return `<svg class="w-full max-w-md h-20" viewBox="0 0 300 60">
+                        <g transform="translate(30,20)"><circle cx="0" cy="0" r="4" fill="#38bdf8"/><text x="0" y="25" fill="#cbd5e1" font-size="9">N=1</text></g>
+                        <g transform="translate(110,20)"><circle cx="0" cy="0" r="4" fill="#38bdf8"/><circle cx="10" cy="0" r="4" fill="#38bdf8"/><text x="5" y="25" fill="#cbd5e1" font-size="9">N=2</text></g>
+                        <g transform="translate(190,20)"><circle cx="0" cy="0" r="4" fill="#38bdf8"/><circle cx="10" cy="0" r="4" fill="#38bdf8"/><circle cx="20" cy="0" r="4" fill="#38bdf8"/><circle cx="30" cy="0" r="4" fill="#38bdf8"/><text x="15" y="25" fill="#cbd5e1" font-size="9">N=4</text></g>
+                        <text x="260" y="25" fill="#a855f7" font-size="14" font-weight="bold">?</text>
+                    </svg>`;
+                case "P24":
+                    return `<svg class="w-full max-w-md h-28" viewBox="0 0 240 100">
+                        <polygon points="40,15 40,85 180,85" fill="none" stroke="#a855f7" stroke-width="2.5"/>
+                        <text x="25" y="50" fill="#38bdf8" font-size="10" font-weight="bold">15</text>
+                        <text x="110" y="98" fill="#38bdf8" font-size="10" font-weight="bold">8</text>
+                        <text x="120" y="45" fill="#10b981" font-size="10" font-weight="bold">17</text>
+                        <text x="150" y="78" fill="#f43f5e" font-size="10" font-weight="bold">α</text>
+                    </svg>`;
+                case "P25":
+                    return `<svg class="w-full max-w-md h-28" viewBox="0 0 260 100">
+                        <line x1="20" y1="80" x2="240" y2="80" stroke="#475569" stroke-width="1"/>
+                        <line x1="100" y1="10" x2="100" y2="95" stroke="#475569" stroke-width="1"/>
+                        <line x1="40" y1="95" x2="180" y2="10" stroke="#10b981" stroke-width="2.5"/>
+                    </svg>`;
+                default:
+                    return '';
+            }
+        }
+
+        function requestUniversalFullscreen() {
+            const docElm = document.documentElement;
+            
+            if (docElm.requestFullscreen) {
+                docElm.requestFullscreen().catch(() => {});
+            } else if (docElm.webkitRequestFullscreen) { // iOS & Safari
+                docElm.webkitRequestFullscreen();
+            } else if (docElm.mozRequestFullScreen) { // Firefox
+                docElm.mozRequestFullScreen();
+            } else if (docElm.msRequestFullscreen) { // IE/Edge
+                docElm.msRequestFullscreen();
+            }
+
+            document.getElementById('fullscreen-overlay').classList.add('hidden');
+            updateFullscreenBadge(true);
+        }
+
+        function isFullscreenActive() {
+            return !!(document.fullscreenElement || 
+                      document.webkitFullscreenElement || 
+                      document.mozFullScreenElement || 
+                      document.msFullscreenElement);
+        }
+
+        function updateFullscreenBadge(active) {
+            const tag = document.getElementById('fs-status-tag');
+            if (active) {
+                tag.innerText = "Pantalla Completa";
+                tag.className = "text-[10px] bg-emerald-900 text-emerald-300 px-1.5 py-0.5 rounded";
+            } else {
+                tag.innerText = "Ventana";
+                tag.className = "text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded";
+            }
+        }
+
+        // Monitor Fullscreen Changes
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+            document.addEventListener(evt, () => {
+                if (!isFullscreenActive() && !isExamFinished && studentInfo.email) {
+                    updateFullscreenBadge(false);
+                    document.getElementById('fullscreen-overlay').classList.remove('hidden');
+                    registerInfraction("Salió del modo pantalla completa.");
+                } else if (isFullscreenActive()) {
+                    updateFullscreenBadge(true);
+                }
+            });
+        });
+
+        /* LOCALSTORAGE REGISTRATION VALIDATION */
+        function getRegisteredEmails() {
+            const data = localStorage.getItem("registered_exam_emails");
+            return data ? JSON.parse(data) : [];
+        }
+
+        function saveRegisteredEmail(email) {
+            const list = getRegisteredEmails();
+            list.push(email.toLowerCase().trim());
+            localStorage.setItem("registered_exam_emails", JSON.stringify(list));
+        }
+
+        function isEmailRegistered(email) {
+            const list = getRegisteredEmails();
+            return list.includes(email.toLowerCase().trim());
+        }
+
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function startExam(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('reg-name').value.trim();
+            const code = document.getElementById('reg-code').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+
+            if (isEmailRegistered(email)) {
+                const errBox = document.getElementById('reg-error-msg');
+                errBox.innerText = "¡ACCESO DENEGADO! Este correo electrónico ya inició o completó el examen anteriormente.";
+                errBox.classList.remove('hidden');
+                return;
+            }
+
+            studentInfo = { name, code, email, startTime: new Date() };
+            saveRegisteredEmail(email);
+
+            // Request Fullscreen
+            requestUniversalFullscreen();
+
+            // Randomize active questions
+            activeQuestions = shuffleArray(ALL_QUESTIONS);
+
+            // UI Transitions
+            document.getElementById('registration-screen').classList.add('hidden');
+            document.getElementById('exam-screen').classList.remove('hidden');
+            document.getElementById('quiz-header-info').classList.remove('hidden');
+
+            renderQuestion(0);
+            setupGridModal();
+            startTimer();
+            setupAntiCheat();
+        }
+
+        /* TIMER LOGIC */
+        function startTimer() {
+            const display = document.getElementById('timer-display');
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+
+                const mins = Math.floor(timeRemaining / 60);
+                const secs = timeRemaining % 60;
+                display.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+                if (timeRemaining <= 300) {
+                    display.classList.remove('text-emerald-400');
+                    display.classList.add('text-red-400');
+                }
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    finishExam(true);
+                }
+            }, 1000);
+        }
+
+        function renderQuestion(index) {
+            currentQIndex = index;
+            const q = activeQuestions[index];
+
+            document.getElementById('current-q-num').innerText = index + 1;
+            document.getElementById('q-category').innerText = q.category;
+            document.getElementById('q-text').innerText = q.question;
+
+            const graphContainer = document.getElementById('q-graphics-container');
+            if (q.hasGraphic) {
+                graphContainer.classList.remove('hidden');
+                graphContainer.innerHTML = renderGraphic(q.graphicType);
+            } else {
+                graphContainer.classList.add('hidden');
+                graphContainer.innerHTML = '';
+            }
+
+            const optContainer = document.getElementById('options-container');
+            optContainer.innerHTML = '';
+
+            q.options.forEach((opt, optIdx) => {
+                const isSelected = userAnswers[q.id] === optIdx;
+                const optBtn = document.createElement('button');
+                optBtn.type = 'button';
+                optBtn.className = `w-full text-left p-3.5 sm:p-4 rounded-xl border text-xs sm:text-sm font-medium transition flex items-center justify-between ${
+                    isSelected 
+                        ? 'bg-indigo-950/80 border-indigo-500 text-indigo-100 ring-2 ring-indigo-500/50' 
+                        : 'bg-slate-900/70 border-slate-700/80 hover:bg-slate-700/50 text-slate-200'
+                }`;
+                optBtn.onclick = () => selectOption(q.id, optIdx);
+
+                optBtn.innerHTML = `
+                    <span class="pr-2">${opt}</span>
+                    <span class="w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 text-xs ${
+                        isSelected ? 'border-indigo-400 bg-indigo-500 text-white font-bold' : 'border-slate-600'
+                    }">
+                        ${isSelected ? '✓' : ''}
+                    </span>
+                `;
+                optContainer.appendChild(optBtn);
+            });
+
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise([document.getElementById('question-header'), optContainer]);
+            }
+
+            const progressPct = ((index + 1) / activeQuestions.length) * 100;
+            document.getElementById('exam-progress-bar').style.width = `${progressPct}%`;
+
+            document.getElementById('btn-prev').disabled = index === 0;
+
+            if (index === activeQuestions.length - 1) {
+                document.getElementById('btn-next').classList.add('hidden');
+            } else {
+                document.getElementById('btn-next').classList.remove('hidden');
+            }
+
+            updateAnsweredBadge();
+        }
+
+        function selectOption(qId, optionIndex) {
+            userAnswers[qId] = optionIndex;
+            renderQuestion(currentQIndex);
+            updateGridModal();
+        }
+
+        function navigateQuestion(step) {
+            const nextIdx = currentQIndex + step;
+            if (nextIdx >= 0 && nextIdx < activeQuestions.length) {
+                renderQuestion(nextIdx);
+            }
+        }
+
+        function updateAnsweredBadge() {
+            const count = Object.keys(userAnswers).length;
+            document.getElementById('answered-count-badge').innerText = `${count}/19 Respondidas`;
+        }
+
+        function setupGridModal() {
+            const grid = document.getElementById('grid-modal-list');
+            grid.innerHTML = '';
+            for (let i = 0; i < ALL_QUESTIONS.length; i++) {
+                const btn = document.createElement('button');
+                btn.id = `grid-btn-${i}`;
+                btn.className = 'py-2 rounded-lg font-bold text-xs border border-slate-700 bg-slate-900 text-slate-300 hover:border-indigo-500';
+                btn.innerText = i + 1;
+                btn.onclick = () => {
+                    renderQuestion(i);
+                    toggleGridModal(false);
+                };
+                grid.appendChild(btn);
+            }
+            updateGridModal();
+        }
+
+        function updateGridModal() {
+            for (let i = 0; i < ALL_QUESTIONS.length; i++) {
+                const btn = document.getElementById(`grid-btn-${i}`);
+                if (!btn) continue;
+                const qId = activeQuestions[i].id;
+                const isAnswered = userAnswers[qId] !== undefined;
+
+                if (i === currentQIndex) {
+                    btn.className = 'py-2 rounded-lg font-bold text-xs border-2 border-indigo-400 bg-indigo-600 text-white';
+                } else if (isAnswered) {
+                    btn.className = 'py-2 rounded-lg font-bold text-xs border border-emerald-600 bg-emerald-950 text-emerald-300';
+                } else {
+                    btn.className = 'py-2 rounded-lg font-bold text-xs border border-slate-700 bg-slate-900 text-slate-400';
+                }
+            }
+        }
+
+        function toggleGridModal(show) {
+            const modal = document.getElementById('grid-modal');
+            if (show) modal.classList.remove('hidden');
+            else modal.classList.add('hidden');
+        }
+
+        function setupAntiCheat() {
+            window.addEventListener('blur', () => registerInfraction("Cambió de ventana o aplicación."));
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) registerInfraction("Pestaña oculta o minimizada.");
+            });
+
+            ['copy', 'paste', 'cut', 'contextmenu', 'selectstart'].forEach(evt => {
+                document.addEventListener(evt, (e) => e.preventDefault());
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (
+                    e.key === 'F12' ||
+                    e.key === 'PrintScreen' ||
+                    (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'C' || e.key === 'J')) ||
+                    (e.ctrlKey && (e.key === 'c' || e.key === 'C' || e.key === 'v' || e.key === 'V' || e.key === 'p' || e.key === 'P'))
+                ) {
+                    e.preventDefault();
+                    registerInfraction("Intento de captura o comando no autorizado.");
+                    return false;
+                }
+            });
+        }
+
+        function registerInfraction(reason = "") {
+            if (isExamFinished) return;
+
+            infractionsCount++;
+            updateInfractionDots();
+
+            if (infractionsCount >= 3) {
+                annulExam();
+            } else {
+                showWarningBanner(`¡Infracción (${infractionsCount}/3)! ${reason}`);
+            }
+        }
+
+        function updateInfractionDots() {
+            const container = document.getElementById('infraction-dots');
+            const dots = container.querySelectorAll('span');
+            dots.forEach((dot, idx) => {
+                if (idx < infractionsCount) {
+                    dot.className = 'w-2.5 h-2.5 rounded-full bg-red-500 animate-ping';
+                }
+            });
+        }
+
+        function showWarningBanner(msg) {
+            const banner = document.getElementById('warning-banner');
+            document.getElementById('warning-text').innerText = msg;
+            banner.classList.remove('hidden');
+            setTimeout(() => {
+                banner.classList.add('hidden');
+            }, 4000);
+        }
+
+        function annulExam() {
+            isExamFinished = true;
+            clearInterval(timerInterval);
+
+            document.getElementById('exam-screen').classList.add('hidden');
+            document.getElementById('quiz-header-info').classList.add('hidden');
+            document.getElementById('annulled-screen').classList.remove('hidden');
+
+            document.getElementById('annulled-student-name').innerText = studentInfo.name || 'N/A';
+            document.getElementById('annulled-student-email').innerText = studentInfo.email || 'N/A';
+        }
+
+        function openFinishModal() {
+            if (isExamFinished) return;
+            const answeredCount = Object.keys(userAnswers).length;
+            document.getElementById('finish-modal-msg').innerText = `Ha respondido ${answeredCount} de ${ALL_QUESTIONS.length} preguntas. ¿Está seguro de que desea entregar la evaluación?`;
+            document.getElementById('finish-confirm-modal').classList.remove('hidden');
+        }
+
+        function closeFinishModal() {
+            document.getElementById('finish-confirm-modal').classList.add('hidden');
+        }
+
+        function executeFinishExam() {
+            closeFinishModal();
+            finishExam(false);
+        }
+
+        function finishExam(isTimeout = false) {
+            isExamFinished = true;
+            clearInterval(timerInterval);
+
+            let correctAnswersCount = 0;
+            ALL_QUESTIONS.forEach(q => {
+                if (userAnswers[q.id] === q.correct) {
+                    correctAnswersCount++;
+                }
+            });
+
+            const score = ((correctAnswersCount / ALL_QUESTIONS.length) * 10).toFixed(1);
+            generatedVerificationCode = 'EV-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+
+            document.getElementById('exam-screen').classList.add('hidden');
+            document.getElementById('quiz-header-info').classList.add('hidden');
+            document.getElementById('results-screen').classList.remove('hidden');
+
+            document.getElementById('res-student-name').innerText = studentInfo.name;
+            document.getElementById('res-student-code').innerText = studentInfo.code;
+            document.getElementById('res-student-email').innerText = studentInfo.email;
+            
+            const now = new Date();
+            document.getElementById('res-timestamp').innerText = `${now.toLocaleDateString('es-ES')} ${now.toLocaleTimeString('es-ES')}`;
+
+            document.getElementById('res-score-text').innerText = `${score} / 10.0`;
+            document.getElementById('res-correct-count').innerText = `${correctAnswersCount} / ${ALL_QUESTIONS.length}`;
+            document.getElementById('res-infractions-count').innerText = `${infractionsCount} / 3`;
+            document.getElementById('res-verification-code').innerText = generatedVerificationCode;
+
+            if (isTimeout) {
+                document.getElementById('evidence-status-badge').innerText = "TIEMPO AGOTADO";
+                document.getElementById('evidence-status-badge').className = "px-3 py-1 bg-amber-950 text-amber-300 border border-amber-700 rounded-full text-xs font-bold";
+            }
+        }
+
+        function downloadEvidenceImage() {
+            const card = document.getElementById('evidence-card');
+
+            // Primary Method: html2canvas
+            if (typeof html2canvas !== 'undefined') {
+                html2canvas(card, {
+                    scale: 2,
+                    backgroundColor: "#1e293b",
+                    logging: false
+                }).then(canvas => {
+                    triggerDownload(canvas.toDataURL("image/png"));
+                }).catch(() => {
+                    generateFallbackNativeCanvas();
+                });
+            } else {
+                generateFallbackNativeCanvas();
+            }
+        }
+
+        function generateFallbackNativeCanvas() {
+            const canvas = document.getElementById('hidden-evidence-canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = 800;
+            canvas.height = 600;
+
+            // Background
+            ctx.fillStyle = "#0f172a";
+            ctx.fillRect(0, 0, 800, 600);
+
+            // Card Container
+            ctx.fillStyle = "#1e293b";
+            ctx.strokeStyle = "#6366f1";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.roundRect(40, 40, 720, 520, 16);
+            ctx.fill();
+            ctx.stroke();
+
+            // Header Title
+            ctx.fillStyle = "#818cf8";
+            ctx.font = "bold 24px sans-serif";
+            ctx.fillText("COMPROBANTE DE EVIDENCIA OFICIAL", 70, 90);
+
+            ctx.fillStyle = "#94a3b8";
+            ctx.font = "14px sans-serif";
+            ctx.fillText("Evaluación Académica de Matemáticas", 70, 115);
+
+            // Divider
+            ctx.strokeStyle = "#334155";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(70, 135);
+            ctx.lineTo(730, 135);
+            ctx.stroke();
+
+            // Student Details
+            ctx.fillStyle = "#cbd5e1";
+            ctx.font = "bold 12px sans-serif";
+            ctx.fillText("ESTUDIANTE:", 70, 175);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "16px sans-serif";
+            ctx.fillText(studentInfo.name || "---", 70, 198);
+
+            ctx.fillStyle = "#cbd5e1";
+            ctx.font = "bold 12px sans-serif";
+            ctx.fillText("CÓDIGO:", 420, 175);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "16px sans-serif";
+            ctx.fillText(studentInfo.code || "---", 420, 198);
+
+            ctx.fillStyle = "#cbd5e1";
+            ctx.font = "bold 12px sans-serif";
+            ctx.fillText("CORREO ELECTRÓNICO:", 70, 240);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "16px sans-serif";
+            ctx.fillText(studentInfo.email || "---", 70, 263);
+
+            ctx.fillStyle = "#cbd5e1";
+            ctx.font = "bold 12px sans-serif";
+            ctx.fillText("FECHA Y HORA:", 420, 240);
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "16px sans-serif";
+            const now = new Date();
+            ctx.fillText(`${now.toLocaleDateString('es-ES')} ${now.toLocaleTimeString('es-ES')}`, 420, 263);
+
+            // Score Box
+            ctx.fillStyle = "#312e81";
+            ctx.strokeStyle = "#4f46e5";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(70, 300, 660, 130, 12);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = "#a5b4fc";
+            ctx.font = "bold 14px sans-serif";
+            ctx.fillText("PUNTAJE OBTENIDO", 100, 340);
+
+            const score = document.getElementById('res-score-text').innerText;
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 38px sans-serif";
+            ctx.fillText(score, 100, 390);
+
+            ctx.fillStyle = "#cbd5e1";
+            ctx.font = "bold 14px sans-serif";
+            ctx.fillText("ACIERTOS: " + document.getElementById('res-correct-count').innerText, 480, 355);
+
+            ctx.fillStyle = "#cbd5e1";
+            ctx.font = "bold 14px sans-serif";
+            ctx.fillText("INFRACCIONES: " + infractionsCount + " / 3", 480, 390);
+
+            // Footer Verification
+            ctx.fillStyle = "#64748b";
+            ctx.font = "12px monospace";
+            ctx.fillText("CÓDIGO VERIFICACIÓN: " + generatedVerificationCode, 70, 480);
+            ctx.fillText("ESTADO: REGISTRADO Y VALIDADO", 480, 480);
+
+            triggerDownload(canvas.toDataURL("image/png"));
+        }
+
+        function triggerDownload(dataUrl) {
+            const link = document.createElement('a');
+            link.download = `Evidencia_Examen_${studentInfo.code || 'Matematicas'}.png`;
+            link.href = dataUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
